@@ -18,7 +18,7 @@ const append = (actor: string | null, action: string, org: string | null = null,
 describe("audit log", () => {
   it("chains every event and verifies, even under concurrent writes", async () => {
     await Promise.all(Array.from({ length: 30 }, (_, i) => append(w.adminA, "test.event", w.orgA, { i, b: 1, a: 2 })));
-    const verify = await asApp<{ checked: string; first_broken_seq: string | null }>(db, null, "SELECT * FROM app.audit_verify()");
+    const verify = await asApp<{ checked: string; first_broken_seq: string | null }>(db, w.superAdmin, "SELECT * FROM app.audit_verify()");
     expect(verify.rows[0]).toEqual({ checked: "30", first_broken_seq: null });
   });
 
@@ -57,8 +57,12 @@ describe("audit log", () => {
       await c.query("UPDATE app.audit_events SET metadata = '{\"i\": 999}' WHERE seq = 5");
       await c.query("ALTER TABLE app.audit_events ENABLE TRIGGER audit_no_update_delete");
     });
-    const verify = await asApp<{ first_broken_seq: string }>(db, null, "SELECT * FROM app.audit_verify()");
+    const verify = await asApp<{ first_broken_seq: string }>(db, w.superAdmin, "SELECT * FROM app.audit_verify()");
     expect(verify.rows[0]!.first_broken_seq).toBe("5");
+  });
+
+  it("only super admins can run a chain verification", async () => {
+    await expect(asApp(db, w.adminA, "SELECT * FROM app.audit_verify()")).rejects.toThrow(/not permitted/);
   });
 
   it("checkpoints are super-admin only", async () => {
