@@ -1,0 +1,18 @@
+{
+  "name": "magistrad",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev:idp": "pnpm --filter @magistrad/dev-idp dev",
+    "dev:api": "pnpm --filter @magistrad/api dev",
+    "dev:web": "pnpm --filter @magistrad/web dev",
+    "db:bootstrap": "pnpm --filter @magistrad/db bootstrap",
+    "db:migrate": "pnpm --filter @magistrad/db migrate",
+    "db:seed": "pnpm --filter @magistrad/db seed",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --workspace-concurrency=1 test",
+    "test:e2e": "pnpm --filter @magistrad/web test:e2e",
+    "matrix:report": "pnpm --filter @magistrad/policy matrix:report"
+  }
+}

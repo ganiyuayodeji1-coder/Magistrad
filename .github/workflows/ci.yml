@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Dependency audit (high and critical)
+        run: pnpm audit --audit-level high
+        continue-on-error: true
+      - run: pnpm typecheck
+      - name: Unit, integration and permission-matrix tests
+        run: pnpm test
+      - run: pnpm --filter @magistrad/web build
+      - run: pnpm --filter @magistrad/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+      - run: terraform -chdir=infra/azure fmt -check -recursive
+      - run: terraform -chdir=infra/azure init -backend=false
+      - run: terraform -chdir=infra/azure validate
