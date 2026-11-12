@@ -10,7 +10,7 @@ export const newToken = () => randomBytes(32).toString("base64url");
 
 export const cookieName = (cfg: Config) =>
   // "__Host-" pins the cookie to this exact host over HTTPS: no Domain, Path=/.
-  cfg.NODE_ENV === "production" ? "__Host-mag_session" : "mag_session";
+  cfg.SESSION_COOKIE_NAME ?? (cfg.NODE_ENV === "production" ? "__Host-mag_session" : "mag_session");
 
 export function setSessionCookie(reply: FastifyReply, cfg: Config, token: string): void {
   reply.setCookie(cookieName(cfg), token, {

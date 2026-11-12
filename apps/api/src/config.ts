@@ -14,6 +14,8 @@ const schema = z.object({
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
   SESSION_ABSOLUTE_HOURS: z.coerce.number().positive().default(12),
   SESSION_IDLE_MINUTES: z.coerce.number().positive().default(30),
+  /** Must match the web app. Defaults: "__Host-mag_session" in production, "mag_session" otherwise. */
+  SESSION_COOKIE_NAME: z.string().regex(/^[\w-]+$/).optional(),
 });
 
 export type Config = z.infer<typeof schema>;
