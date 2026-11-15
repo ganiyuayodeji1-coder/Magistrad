@@ -9,10 +9,12 @@
 export type PlatformRole = "none" | "super_admin";
 export type OrgRole = "org_admin" | "member";
 
+export type OrganisationType = "law_firm" | "chambers" | "court" | "tribunal" | "platform";
+
 export interface Actor {
   userId: string;
   platformRole: PlatformRole;
-  memberships: ReadonlyArray<{ organisationId: string; role: OrgRole }>;
+  memberships: ReadonlyArray<{ organisationId: string; role: OrgRole; organisationType?: OrganisationType }>;
 }
 
 export type Action =
@@ -28,7 +30,8 @@ export type Action =
   | { type: "user.reinstate"; targetUserId: string }
   | { type: "audit.viewPlatform" }
   | { type: "audit.viewOrganisation"; organisationId: string }
-  | { type: "audit.verify" };
+  | { type: "audit.verify" }
+  | { type: "case.open"; organisationId: string };
 
 export type ActionType = Action["type"];
 
@@ -90,6 +93,16 @@ export function can(actor: Actor, action: Action): Decision {
       return isOrgAdmin(actor, action.organisationId)
         ? allow("organisation administrator")
         : deny("only the organisation's administrators can see its audit records");
+
+    case "case.open": {
+      // Opening a matter is the one time someone joins a case of their own accord:
+      // as a solicitor for their firm's client, or as court staff for their court.
+      const m = actor.memberships.find((x) => x.organisationId === action.organisationId);
+      if (!m) return deny("you are not a member of that organisation");
+      return m.organisationType === "law_firm" || m.organisationType === "court" || m.organisationType === "tribunal"
+        ? allow("member of a law firm, court or tribunal")
+        : deny("cases can only be opened by members of a law firm, court or tribunal");
+    }
 
     default: {
       const unreachable: never = action;

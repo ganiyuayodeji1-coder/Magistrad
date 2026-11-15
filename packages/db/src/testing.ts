@@ -104,3 +104,93 @@ export async function seedWorld(db: TestDatabase, tag = randomBytes(3).toString(
     return { superAdmin, orgA, orgB, adminA, memberA, adminB, outsider, emails };
   });
 }
+
+export const CASE_SUBJECTS = [
+  "claimantSolicitor", "claimantColleague", "claimantBarrister", "claimantExpert", "claimantClient",
+  "defendantSolicitor", "judge", "courtAdmin", "outsider", "superAdmin",
+] as const;
+export type CaseSubject = (typeof CASE_SUBJECTS)[number];
+
+export interface CaseWorld {
+  users: Record<CaseSubject, string>;
+  emails: Record<CaseSubject, string>;
+  firmA: string;
+  firmB: string;
+  court: string;
+  caseId: string;
+  sides: { claimant: string; defendant: string };
+  spaces: { claimantPrivate: string; defendantPrivate: string; shared: string; record: string };
+}
+
+/** Runs SQL as the application role acting as `actor` (the way the API does). */
+export async function actAs<T extends pg.QueryResultRow = pg.QueryResultRow>(db: TestDatabase, actor: string | null, sql: string, params: unknown[] = []) {
+  const c = new pg.Client({ connectionString: db.appUrl });
+  await c.connect();
+  try {
+    await c.query("BEGIN");
+    await c.query("SELECT set_config('app.user_id', $1, true)", [actor ?? ""]);
+    const res = await c.query<T>(sql, params);
+    await c.query("COMMIT");
+    return res;
+  } catch (err) {
+    await c.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    await c.end();
+  }
+}
+
+/**
+ * A fictional case, built the way real users would build it: the claimant's solicitor
+ * opens the case, staffs their side and invites the defendant's solicitor; the case is
+ * linked to a court, whose registry assigns a judge.
+ */
+export async function seedCaseWorld(db: TestDatabase, tag = randomBytes(3).toString("hex")): Promise<CaseWorld> {
+  const emails = Object.fromEntries(CASE_SUBJECTS.map((s) => [s, `${s.toLowerCase()}.${tag}@example.test`])) as Record<CaseSubject, string>;
+  const ids = await asOwner(db, async (c) => {
+    const users = {} as Record<CaseSubject, string>;
+    for (const s of CASE_SUBJECTS) {
+      users[s] = (await c.query<{ id: string }>(
+        "INSERT INTO app.users (email, full_name, platform_role, status) VALUES ($1, $2, $3, 'active') RETURNING id",
+        [emails[s], `Test ${s}`, s === "superAdmin" ? "super_admin" : "none"])).rows[0]!.id;
+    }
+    const org = async (name: string, type: string) =>
+      (await c.query<{ id: string }>("INSERT INTO app.organisations (name, type) VALUES ($1, $2) RETURNING id", [name, type])).rows[0]!.id;
+    const firmA = await org(`Claimant Firm ${tag} (fictional)`, "law_firm");
+    const firmB = await org(`Defendant Firm ${tag} (fictional)`, "law_firm");
+    const chambers = await org(`Chambers ${tag} (fictional)`, "chambers");
+    const court = await org(`County Court ${tag} (fictional)`, "court");
+    const member = (u: string, o: string, r = "member") =>
+      c.query("INSERT INTO app.memberships (user_id, organisation_id, org_role, created_by) VALUES ($1, $2, $3, $4)", [u, o, r, users.superAdmin]);
+    await member(users.claimantSolicitor, firmA);
+    await member(users.claimantColleague, firmA);
+    await member(users.defendantSolicitor, firmB);
+    await member(users.claimantBarrister, chambers);
+    await member(users.courtAdmin, court, "org_admin");
+    await member(users.judge, court);
+    return { users, firmA, firmB, court };
+  });
+  const { users } = ids;
+  const caseId = (await actAs<{ id: string }>(db, users.claimantSolicitor,
+    "SELECT app.create_case($1, $2, 'County Court at Exampletown', 'commercial', NULL, 'claimant', 'Acme Widgets Ltd (fictional)', 'organisation', 'Bloggs Builders Ltd (fictional)', 'organisation') AS id",
+    [ids.firmA, `Acme v Bloggs ${tag}`])).rows[0]!.id;
+  const sides = await asOwner(db, async (c) => {
+    const r = await c.query<{ id: string; kind: string }>("SELECT id, kind FROM app.sides WHERE case_id = $1", [caseId]);
+    return { claimant: r.rows.find((x) => x.kind === "claimant")!.id, defendant: r.rows.find((x) => x.kind === "defendant")!.id };
+  });
+  const add = (actor: string, user: string, role: string, side: string | null) =>
+    actAs(db, actor, "INSERT INTO app.participants (case_id, user_id, case_role, side_id, added_by) VALUES ($1, $2, $3, $4, $5)",
+      [caseId, user, role, side, actor]);
+  await add(users.claimantSolicitor, users.claimantBarrister, "barrister", sides.claimant);
+  await add(users.claimantSolicitor, users.claimantExpert, "expert", sides.claimant);
+  await add(users.claimantSolicitor, users.claimantClient, "party", sides.claimant);
+  await add(users.claimantSolicitor, users.defendantSolicitor, "solicitor", sides.defendant);
+  await actAs(db, users.claimantSolicitor, "UPDATE app.cases SET court_organisation_id = $2 WHERE id = $1", [caseId, ids.court]);
+  await add(users.courtAdmin, users.judge, "judge", null);
+  const spaces = await asOwner(db, async (c) => {
+    const r = await c.query<{ id: string; kind: string; side_id: string | null }>("SELECT id, kind, side_id FROM app.spaces WHERE case_id = $1", [caseId]);
+    const find = (k: string, s: string | null) => r.rows.find((x) => x.kind === k && x.side_id === s)!.id;
+    return { claimantPrivate: find("side_private", sides.claimant), defendantPrivate: find("side_private", sides.defendant), shared: find("shared", null), record: find("court_record", null) };
+  });
+  return { users, emails, firmA: ids.firmA, firmB: ids.firmB, court: ids.court, caseId, sides, spaces };
+}
