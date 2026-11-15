@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { withActor, type Pool } from "@magistrad/db";
-import type { Actor } from "@magistrad/policy";
+import type { Actor, OrganisationType } from "@magistrad/policy";
 import type { Config } from "../config";
 import { unauthenticated } from "../http/errors";
 
@@ -58,8 +58,8 @@ export async function loadCurrentUser(req: FastifyRequest, pool: Pool, cfg: Conf
     );
     const row = u.rows[0];
     if (!row) return null;
-    const m = await tx.query<{ organisation_id: string; org_role: "org_admin" | "member" }>(
-      `SELECT m.organisation_id, m.org_role FROM app.memberships m
+    const m = await tx.query<{ organisation_id: string; org_role: "org_admin" | "member"; type: OrganisationType }>(
+      `SELECT m.organisation_id, m.org_role, o.type FROM app.memberships m
        JOIN app.organisations o ON o.id = m.organisation_id
        WHERE m.user_id = $1 AND m.status = 'active' AND o.status = 'active'`,
       [row.id],
@@ -69,7 +69,7 @@ export async function loadCurrentUser(req: FastifyRequest, pool: Pool, cfg: Conf
       actor: {
         userId: row.id,
         platformRole: row.platform_role,
-        memberships: m.rows.map((r) => ({ organisationId: r.organisation_id, role: r.org_role })),
+        memberships: m.rows.map((r) => ({ organisationId: r.organisation_id, role: r.org_role, organisationType: r.type })),
       },
       user: { id: row.id, email: row.email, fullName: row.full_name, platformRole: row.platform_role },
     };

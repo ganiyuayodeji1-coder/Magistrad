@@ -7,6 +7,7 @@ import type { OidcClient } from "./auth/oidc";
 import { loadCurrentUser } from "./auth/session";
 import { registerSecurity } from "./http/security";
 import { auditRoutes } from "./modules/audit";
+import { caseRoutes } from "./modules/cases";
 import { organisationRoutes } from "./modules/organisations";
 import { userRoutes } from "./modules/users";
 
@@ -40,5 +41,6 @@ export async function buildApp({ cfg, pool, oidc, logger = true }: AppDeps): Pro
   await app.register(organisationRoutes, { pool });
   await app.register(userRoutes, { pool });
   await app.register(auditRoutes, { pool });
+  await app.register(caseRoutes, { pool });
   return app;
 }
