@@ -9,7 +9,7 @@ export function Nav({ items }: { items: { href: string; label: string }[] }) {
   return (
     <nav aria-label="Main" className="-mb-px flex gap-1 overflow-x-auto">
       {items.map((item) => {
-        const active = item.href === "/" ? path === "/" : path === item.href || path.startsWith(`${item.href}/`);
+        const active = item.href === "/" ? path === "/" || path.startsWith("/cases") : path === item.href || path.startsWith(`${item.href}/`);
         return (
           <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
             className={cn("shrink-0 border-b-2 px-3 py-3 text-sm transition-colors",

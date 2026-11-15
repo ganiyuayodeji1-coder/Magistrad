@@ -16,4 +16,11 @@ export const DEV_ACCOUNTS: DevAccount[] = [
   { sub: "dev-alpha-member", email: "ben@alpha-llp.test", name: "Ben Member (fictional)", password: "dev-password-1", totpSecret: "MFRGGZDFMZTWQ2LK" },
   { sub: "dev-beta-admin", email: "carol@beta-co.test", name: "Carol Beta (fictional)", password: "dev-password-1", totpSecret: "GEZDGNBVGY3TQOJQ" },
   { sub: "dev-no-mfa", email: "dan@nomfa.test", name: "Dan NoMFA (fictional)", password: "dev-password-1", totpSecret: null },
+  // A fictional case cast (Phase 1)
+  { sub: "dev-claimant-sol", email: "grace@northgate.test", name: "Grace Northgate (fictional)", password: "dev-password-1", totpSecret: "ONSWG4TFOQZDCMRT" },
+  { sub: "dev-defendant-sol", email: "dave@defence-llp.test", name: "Dave Defence (fictional)", password: "dev-password-1", totpSecret: "MZXW6YTBOJRGC4TO" },
+  { sub: "dev-barrister", email: "eve@chambers.test", name: "Eve Counsel (fictional)", password: "dev-password-1", totpSecret: "NBSWY3DPO5XXE3DE" },
+  { sub: "dev-expert", email: "frank@experts.test", name: "Frank Expert (fictional)", password: "dev-password-1", totpSecret: "KRUGKIDROVUWG2ZA" },
+  { sub: "dev-judge", email: "judge.ray@court.test", name: "HHJ Ray (fictional)", password: "dev-password-1", totpSecret: "IFBEGRCFIZDUQSKK" },
+  { sub: "dev-registry", email: "registry@court.test", name: "Rita Registry (fictional)", password: "dev-password-1", totpSecret: "JBSWY3DPEB3W64TM" },
 ];

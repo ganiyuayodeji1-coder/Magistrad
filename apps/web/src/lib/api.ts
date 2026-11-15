@@ -30,3 +30,17 @@ export interface Me {
   organisations: { id: string; name: string; type: string; role: "org_admin" | "member" }[];
   isSuperAdmin: boolean;
 }
+
+export interface CaseSummary {
+  id: string; reference: string; title: string; status: string; courtName: string; claimNumber: string | null;
+  role: import("./labels").CaseRole; side: import("./labels").Side | null;
+}
+
+export interface CaseDetail {
+  id: string; reference: string; title: string; claimNumber: string | null; courtName: string;
+  court: { id: string; name: string | null } | null; category: string; status: string; openedAt: string;
+  me: { role: import("./labels").CaseRole; side: import("./labels").Side | null };
+  parties: { id: string; side: import("./labels").Side; name: string; type: string }[];
+  spaces: { id: string; kind: "side_private" | "shared" | "court_record"; side: import("./labels").Side | null }[];
+  permissions: { update: boolean; linkCourt: boolean; manageOwnSide: boolean; manageCourtRoles: boolean };
+}

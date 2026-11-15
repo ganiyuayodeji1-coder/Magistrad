@@ -39,9 +39,9 @@ test.describe.serial("Phase 0 in a real browser", () => {
   test("the super administrator sets up a firm and its administrator", async ({ page }) => {
     await signIn(page, "admin@magistrad.test");
     await expect(page.getByTestId("current-user")).toHaveText("Morgan Platform");
-    await expect(page.getByText("You are not a member of any organisation yet")).toBeVisible();
+    await expect(page.getByText("You are not on any cases yet")).toBeVisible();
 
-    await page.getByRole("link", { name: "Organisations" }).click();
+    await page.getByRole("link", { name: "All organisations" }).click();
     await page.getByLabel("Name").fill("Alpha LLP (fictional)");
     await page.getByLabel("Regulator number").fill("000000");
     await page.getByRole("button", { name: "Create" }).click();
@@ -61,6 +61,7 @@ test.describe.serial("Phase 0 in a real browser", () => {
     await expect(page.getByTestId("current-user")).toHaveText("Alice Admin");
     // Not a super admin: no platform pages in the navigation.
     await expect(page.getByRole("link", { name: "Accounts" })).toHaveCount(0);
+    await page.getByRole("link", { name: "My organisations", exact: true }).click();
     await page.getByRole("link", { name: /Alpha LLP \(fictional\)/ }).click();
 
     await page.getByLabel("Full name").fill("Ben Member");
@@ -81,6 +82,7 @@ test.describe.serial("Phase 0 in a real browser", () => {
 
   test("a member sees their firm but cannot manage it or reach platform pages", async ({ page }) => {
     await signIn(page, "ben@alpha-llp.test");
+    await page.getByRole("link", { name: "My organisations", exact: true }).click();
     await page.getByRole("link", { name: /Alpha LLP \(fictional\)/ }).click();
     await expect(page.getByRole("button", { name: "Add person" })).toHaveCount(0);
     await expect(page.getByText("Only administrators can change membership.")).toBeVisible();

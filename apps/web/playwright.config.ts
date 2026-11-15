@@ -8,6 +8,7 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3100",
     trace: "off",
+    screenshot: "only-on-failure",
     launchOptions: process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : undefined,
   },
   webServer: {

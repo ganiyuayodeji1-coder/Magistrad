@@ -18,8 +18,27 @@ const WEB = `http://localhost:${PORTS.web}`;
 
 loadRootEnv();
 const db = await createTestDatabase("e2e");
-await asOwner(db, (c) => c.query(
-  "INSERT INTO app.users (email, full_name, platform_role) VALUES ('admin@magistrad.test', 'Morgan Platform', 'super_admin')"));
+await asOwner(db, async (c) => {
+  await c.query("INSERT INTO app.users (email, full_name, platform_role) VALUES ('admin@magistrad.test', 'Morgan Platform', 'super_admin')");
+  // Phase 1 cast: two firms and a court, set up as an administrator would. Everyone starts as invited.
+  const user = async (email: string, name: string) =>
+    (await c.query<{ id: string }>("INSERT INTO app.users (email, full_name) VALUES ($1, $2) RETURNING id", [email, name])).rows[0]!.id;
+  const org = async (name: string, type: string) =>
+    (await c.query<{ id: string }>("INSERT INTO app.organisations (name, type) VALUES ($1, $2) RETURNING id", [name, type])).rows[0]!.id;
+  const grace = await user("grace@northgate.test", "Grace Northgate");
+  const dave = await user("dave@defence-llp.test", "Dave Defence");
+  const ray = await user("judge.ray@court.test", "HHJ Ray");
+  const rita = await user("registry@court.test", "Rita Registry");
+  const northgate = await org("Northgate Solicitors (fictional)", "law_firm");
+  const defence = await org("Defence LLP (fictional)", "law_firm");
+  const court = await org("County Court at Exampletown (fictional)", "court");
+  const member = (u: string, o: string, r = "member") =>
+    c.query("INSERT INTO app.memberships (user_id, organisation_id, org_role, created_by) VALUES ($1, $2, $3, $1)", [u, o, r]);
+  await member(grace, northgate);
+  await member(dave, defence);
+  await member(ray, court);
+  await member(rita, court, "org_admin");
+});
 
 const issuer = `http://localhost:${PORTS.idp}`;
 const idp = await startDevIdp({

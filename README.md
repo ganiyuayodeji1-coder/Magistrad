@@ -4,7 +4,8 @@ A secure digital workspace for court matters in England & Wales. Each side's pre
 private to that side, shared material is exchanged under the rules, and every action is recorded
 in a tamper-evident audit log.
 
-**Status:** Phase 0 (foundations) is complete and awaiting review. See [`docs/phase-0-report.md`](docs/phase-0-report.md).
+**Status:** Phase 1 (case workspaces) is complete and awaiting review. See [`docs/phase-1-report.md`](docs/phase-1-report.md)
+(and [`docs/phase-0-report.md`](docs/phase-0-report.md) for the foundations).
 The product, architecture and roadmap are in the Magistrad plan document; key engineering decisions are in
 [`docs/decisions.md`](docs/decisions.md). The permission matrix is in [`docs/permission-matrix.md`](docs/permission-matrix.md).
 
@@ -36,7 +37,8 @@ pnpm dev:web                    # terminal 3 — http://localhost:3000
 ```
 
 Sign in as `admin@magistrad.test` / `dev-password-1`. The development sign-in page shows the current
-authenticator code for each fictional account.
+authenticator code for each fictional account. To try a case, create a law firm with `grace@northgate.test`
+as a member, sign in as her and open a case.
 
 ## Tests
 
