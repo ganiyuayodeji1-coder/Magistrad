@@ -8,7 +8,14 @@ export type Pool = pg.Pool;
 export type Tx = pg.PoolClient;
 
 export function createPool(connectionString: string, max = 10): pg.Pool {
-  return new pg.Pool({ connectionString, max, application_name: "magistrad-api" });
+  const pool = new pg.Pool({ connectionString, max, application_name: "magistrad-api" });
+  // An idle connection can be cut by the server (restart, failover, admin action). Without this
+  // handler Node treats it as an unhandled error and the whole API process exits. The pool
+  // discards the broken connection and opens a fresh one on the next query.
+  pool.on("error", (err) => {
+    console.error(JSON.stringify({ level: "error", msg: "database connection lost; the pool will reconnect", error: err.message }));
+  });
+  return pool;
 }
 
 /**

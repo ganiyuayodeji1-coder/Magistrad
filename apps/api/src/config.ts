@@ -16,6 +16,12 @@ const schema = z.object({
   SESSION_IDLE_MINUTES: z.coerce.number().positive().default(30),
   /** Must match the web app. Defaults: "__Host-mag_session" in production, "mag_session" otherwise. */
   SESSION_COOKIE_NAME: z.string().regex(/^[\w-]+$/).optional(),
+  /**
+   * Preview mode: adds a sign-in shortcut for the fictional test accounts so the app can be
+   * viewed where the identity provider's redirects can't work (e.g. an in-app preview window).
+   * Refused in production.
+   */
+  MAGISTRAD_PREVIEW: z.enum(["0", "1"]).default("0"),
 });
 
 export type Config = z.infer<typeof schema>;
@@ -26,6 +32,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid configuration: ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
   }
   const cfg = parsed.data;
+  if (cfg.NODE_ENV === "production" && cfg.MAGISTRAD_PREVIEW === "1") {
+    throw new Error("MAGISTRAD_PREVIEW must never be enabled in production");
+  }
   if (cfg.NODE_ENV === "production") {
     for (const key of ["API_PUBLIC_URL", "WEB_ORIGIN", "OIDC_ISSUER"] as const) {
       if (!cfg[key].startsWith("https://")) throw new Error(`${key} must use https in production`);

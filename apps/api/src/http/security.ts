@@ -21,7 +21,11 @@ export async function registerSecurity(app: FastifyInstance, cfg: Config): Promi
   // own web origin, as JSON. Browsers cannot forge the Origin header.
   app.addHook("onRequest", async (req) => {
     if (SAFE_METHODS.has(req.method)) return;
-    if (req.headers.origin !== cfg.WEB_ORIGIN) throw new HttpError(403, "bad_origin", "Request origin not allowed.");
+    // In preview mode the page's address isn't known in advance, so instead of the origin we
+    // require a custom header: browsers cannot attach it cross-site without a CORS preflight,
+    // which this API never grants.
+    const previewOk = cfg.MAGISTRAD_PREVIEW === "1" && req.headers["x-magistrad-request"] === "1";
+    if (req.headers.origin !== cfg.WEB_ORIGIN && !previewOk) throw new HttpError(403, "bad_origin", "Request origin not allowed.");
     const ct = req.headers["content-type"] ?? "";
     if (req.method !== "DELETE" && !ct.startsWith("application/json") && req.headers["content-length"] !== "0") {
       throw new HttpError(415, "unsupported_media_type", "Requests must be JSON.");

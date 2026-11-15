@@ -124,3 +124,19 @@ describe("sign-in functions", () => {
     expect((await asApp(db, null, "SELECT * FROM app.auth_take_flow('state-1')")).rowCount).toBe(0);
   });
 });
+
+describe("connection resilience", () => {
+  it("survives the server dropping idle connections, and keeps working", async () => {
+    const { createPool } = await import("../src/index");
+    const pg = (await import("pg")).default;
+    const pool = createPool(db.appUrl, 2);
+    await pool.query("SELECT 1");
+    const admin = new pg.Client({ connectionString: db.adminUrl });
+    await admin.connect();
+    await admin.query("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND usename = 'magistrad_app'", [db.name]);
+    await admin.end();
+    await new Promise((r) => setTimeout(r, 200));
+    await expect(pool.query("SELECT 1 AS ok")).resolves.toMatchObject({ rows: [{ ok: 1 }] });
+    await pool.end();
+  });
+});

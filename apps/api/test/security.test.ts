@@ -70,3 +70,24 @@ describe("HTTP security", () => {
     expect(res.json()).toMatchObject({ intact: true, firstBrokenSeq: null });
   });
 });
+
+describe("preview mode safeguards", () => {
+  it("has no preview sign-in unless preview mode is on", async () => {
+    const res = await h.app.inject({ method: "POST", url: "/dev/preview-session", headers: asBrowser(), payload: { email: "admin@magistrad.test" } });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("ignores the preview CSRF header unless preview mode is on", async () => {
+    const res = await h.app.inject({ method: "POST", url: "/organisations",
+      headers: { cookie: `mag_session=${superToken}`, "x-magistrad-request": "1" }, payload: { name: "Sneaky LLP", type: "law_firm" } });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("refuses to start with preview mode in production", async () => {
+    const { loadConfig } = await import("../src/config");
+    expect(() => loadConfig({
+      NODE_ENV: "production", MAGISTRAD_PREVIEW: "1", DATABASE_URL: "postgresql://x@db/x", API_PUBLIC_URL: "https://a.example/api",
+      WEB_ORIGIN: "https://a.example", OIDC_ISSUER: "https://idp.example", OIDC_CLIENT_ID: "x", OIDC_CLIENT_SECRET: "y",
+    })).toThrow(/never be enabled in production/);
+  });
+});

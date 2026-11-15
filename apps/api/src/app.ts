@@ -42,5 +42,9 @@ export async function buildApp({ cfg, pool, oidc, logger = true }: AppDeps): Pro
   await app.register(userRoutes, { pool });
   await app.register(auditRoutes, { pool });
   await app.register(caseRoutes, { pool });
+  if (cfg.MAGISTRAD_PREVIEW === "1") {
+    const { previewRoutes } = await import("./modules/preview");
+    await app.register(previewRoutes, { pool, cfg });
+  }
   return app;
 }

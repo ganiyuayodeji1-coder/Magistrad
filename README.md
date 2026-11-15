@@ -40,6 +40,14 @@ Sign in as `admin@magistrad.test` / `dev-password-1`. The development sign-in pa
 authenticator code for each fictional account. To try a case, create a law firm with `grace@northgate.test`
 as a member, sign in as her and open a case.
 
+## Preview mode (fictional data only)
+
+For viewing the app where the identity provider's redirects can't work (for example an in-app preview
+window), run with `MAGISTRAD_PREVIEW=1` against a database whose name contains `preview` or `dev`, loaded with
+`pnpm --filter @magistrad/db seed:demo`. The sign-in page then offers one-click sign-in as the fictional cast of
+Acme v Bloggs. The API refuses to start with preview mode in production, the shortcut accepts only the fictional
+`.test` accounts, and every use is recorded in the audit log.
+
 ## Tests
 
 ```bash

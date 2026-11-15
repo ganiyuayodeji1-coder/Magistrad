@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/surface";
 import { Wordmark } from "@/components/wordmark";
+import { PreviewSignIn } from "@/components/app/preview-sign-in";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -14,8 +15,30 @@ const ERRORS: Record<string, string> = {
   failed: "Sign-in could not be completed. Please try again.",
 };
 
+// What each fictional preview person is, so a visitor knows whose eyes they are looking through.
+const PREVIEW_HINTS: Record<string, string> = {
+  "admin@magistrad.test": "Super Administrator: manages firms and accounts, sees no case material",
+  "grace@northgate.test": "Claimant's solicitor on Acme v Bloggs",
+  "eve@chambers.test": "Claimant's barrister on Acme v Bloggs",
+  "frank@experts.test": "Claimant's expert on Acme v Bloggs",
+  "dave@defence-llp.test": "Defendant's solicitor on Acme v Bloggs",
+  "judge.ray@court.test": "Judge on Acme v Bloggs",
+  "registry@court.test": "Court registry: assigns judges, sees no documents",
+  "alice@alpha-llp.test": "Administrator of Alpha LLP (no cases)",
+};
+
+async function previewAccounts() {
+  if (process.env.MAGISTRAD_PREVIEW !== "1") return null;
+  const api = process.env.API_INTERNAL_URL ?? `http://127.0.0.1:${process.env.API_PORT ?? 4000}`;
+  const res = await fetch(`${api}/dev/preview-accounts`, { cache: "no-store" }).catch(() => null);
+  if (!res?.ok) return null;
+  const { accounts } = (await res.json()) as { accounts: { email: string; name: string }[] };
+  return accounts.filter((a) => PREVIEW_HINTS[a.email]).map((a) => ({ ...a, name: a.name.replace(" (fictional)", ""), hint: PREVIEW_HINTS[a.email]! }));
+}
+
 export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string; returnTo?: string }> }) {
   const { error, returnTo } = await searchParams;
+  const preview = await previewAccounts();
   const href = `/api/auth/login${returnTo?.startsWith("/") && !returnTo.startsWith("//") ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
   return (
     <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
@@ -44,6 +67,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
           <p className="mt-6 text-xs leading-relaxed text-muted">
             Accounts are created by an administrator. Magistrad never asks for your password on this page — you enter it only on your organisation's sign-in screen.
           </p>
+          {preview && preview.length > 0 && <PreviewSignIn accounts={preview} />}
         </div>
       </section>
     </main>

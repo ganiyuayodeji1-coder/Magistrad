@@ -8,7 +8,7 @@ import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const REQUEST_HEADERS = ["cookie", "content-type", "origin", "user-agent", "accept", "x-forwarded-for"];
+const REQUEST_HEADERS = ["cookie", "content-type", "origin", "user-agent", "accept", "x-forwarded-for", "x-magistrad-request"];
 const RESPONSE_HEADERS = ["content-type", "location", "cache-control", "retry-after", "x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"];
 const MAX_BODY = 64 * 1024;
 

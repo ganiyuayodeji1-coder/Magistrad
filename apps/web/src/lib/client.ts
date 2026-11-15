@@ -4,7 +4,7 @@
 export async function apiSend(method: "POST" | "PATCH", path: string, body?: unknown): Promise<{ ok: true; data: unknown } | { ok: false; message: string }> {
   const res = await fetch(`/api${path}`, {
     method,
-    headers: body === undefined ? {} : { "content-type": "application/json" },
+    headers: { "x-magistrad-request": "1", ...(body === undefined ? {} : { "content-type": "application/json" }) },
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "same-origin",
   });
